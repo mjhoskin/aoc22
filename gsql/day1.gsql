@@ -1,0 +1,22 @@
+CREATE QUERY get_greediest_elf() FOR GRAPH d1 {
+  SumAccum<INT> @total_calories;
+  SumAccum<INT> @@top_3_cals;
+
+  elves = {elf.*};
+
+  te = SELECT e
+       FROM elves:e - (has) - food_item:f
+       ACCUM
+         e.@total_calories += f.calory
+       ORDER BY
+         e.@total_calories DESC
+       LIMIT 3;
+
+  PRINT te[te.@total_calories AS calories];
+
+  __ = SELECT e
+       FROM te:e
+       ACCUM
+         @@top_3_cals += e.@total_calories;
+  PRINT @@top_3_cals;
+}
