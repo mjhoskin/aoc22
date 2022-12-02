@@ -1,0 +1,17 @@
+CREATE GRAPH aoc()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH aoc { 
+  ADD VERTEX my_play(PRIMARY_ID play STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD VERTEX their_play(PRIMARY_ID play STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD UNDIRECTED EDGE versus(FROM my_play, TO their_play, num_plays INT);
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_d2_txt_1669975296378 FOR GRAPH aoc {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX my_play VALUES($3) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO VERTEX their_play VALUES($2) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO EDGE versus VALUES($3, $2, $1) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+    }
+
+set exit_on_error = "true"

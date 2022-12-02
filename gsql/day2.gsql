@@ -1,0 +1,63 @@
+CREATE QUERY are_you_winning() FOR GRAPH aoc {
+  # win = 6, draw = 3, lose = 1
+  # rock = 1, paper = 2, scissors = 3
+  plays = {my_play.*};
+
+  SumAccum<INT> @@p1_score;
+
+  # feels like should be able to have this as a non accum but Map doesn't seem to behave
+  MapAccum<STRING, INT> @@base_score;
+
+  @@base_score += ("A" -> 1); #r X
+  @@base_score += ("B" -> 2); #p Y
+  @@base_score += ("C" -> 3); #s Z
+
+  MapAccum<STRING, STRING> @@beats;
+  @@beats += ("X" -> "C"); #used in p1
+  @@beats += ("Y" -> "A");
+  @@beats += ("Z" -> "B");
+
+  __ = SELECT p
+         FROM plays:p - (versus:v) - their_play:t
+         ACCUM
+           @@p1_score += @@base_score.get(p.play) * v.num_plays,
+
+           # draws
+           IF @@base_score.get(p.play) == @@base_score.get(t.play)
+           THEN @@p1_score += 3 * v.num_plays
+           ELSE IF @@beats.get(p.play) == t.play
+           THEN @@p1_score += 6 * v.num_plays END;
+
+  PRINT @@p1_score;
+
+
+
+  ##### PART 2
+  SumAccum<INT> @@p2_score;
+
+  MapAccum<STRING, STRING> @@loses;
+  @@loses += ("A" -> "B");
+  @@loses += ("B" -> "C");
+  @@loses += ("C" -> "A");
+
+  @@beats += ("A" -> "C"); #used in p2
+  @@beats += ("B" -> "A");
+  @@beats += ("C" -> "B");
+
+    __ = SELECT p
+         FROM plays:p - (versus:v) - their_play:t
+         ACCUM
+           # draws
+           IF p.play == "X" #LOSE
+           THEN @@p2_score += 0,
+                @@p2_score += @@base_score.get(@@beats.get(t.play)) * v.num_plays
+           ELSE IF p.play == "Y" #DRAW, play their card
+           THEN @@p2_score += 3 * v.num_plays,
+                @@p2_score += @@base_score.get(t.play) * v.num_plays
+           ELSE IF p.play == "Z" #WIN, play something that
+           THEN @@p2_score += 6 * v.num_plays,
+                @@p2_score += @@base_score.get(@@loses.get(t.play)) * v.num_plays
+           END;
+
+  PRINT @@p2_score;
+}
