@@ -1,9 +1,37 @@
-CREATE QUERY problematic_bags() FOR GRAPH aoc {
-  BagAccum<VERTEX<item>> @dupe;
-  MapAccum<VERTEX<pouch>, BagAccum<VERTEX<item>>> @elves_items;
-  ListAccum<VERTEX<pouch>> @pouches;
-  SumAccum<INT> @@total_priority;
+CREATE GRAPH aoc()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH aoc { 
+  ADD VERTEX elf(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD VERTEX pouch(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD VERTEX item(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD UNDIRECTED EDGE contains(FROM pouch, TO item);
+  ADD UNDIRECTED EDGE has(FROM elf, TO pouch);
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_d3_txt_1670100089841 FOR GRAPH aoc {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX elf VALUES($0) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO VERTEX pouch VALUES($1) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO VERTEX item VALUES($2) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO EDGE has VALUES($0, $1) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO EDGE contains VALUES($1, $2) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+    }
 
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE QUERY problematic_bags(/* Parameters here */) FOR GRAPH aoc { 
+  /* Write query logic here */ 
+    
+  #SetAccum<STRING> @elves_items;
+  BagAccum<VERTEX<item>> @dupe;
+  
+  MapAccum<VERTEX<pouch>, BagAccum<VERTEX<item>>> @elves_items;
+  SetAccum<STRING> @complete_items;
+  ListAccum<VERTEX<pouch>> @pouches;    
+  SumAccum<INT> @@total_priority;
+  MaxAccum<INT> @group;
+  
   MapAccum<STRING, INT> @@priority;
   @@priority += ("a" -> 1);
   @@priority += ("b" -> 2);
@@ -57,49 +85,49 @@ CREATE QUERY problematic_bags() FOR GRAPH aoc {
   @@priority += ("X" -> 50);
   @@priority += ("Y" -> 51);
   @@priority += ("Z" -> 52);
-
-  # give each elf the details of its pouch ids
+  
   __ = SELECT e FROM elf:e - () - pouch:p ACCUM e.@pouches += p;
 
-  elves =
-    SELECT e
-    FROM elf:e - () - pouch:p - () - item:i
+  elves = 
+    SELECT e 
+    FROM elf:e - () - pouch:p - () - item:i 
     ACCUM
-      # store pouch items
-      e.@elves_items += (p -> i)
-    POST-ACCUM
-      # issue comes from intersection of both parts
+      e.@elves_items += (p -> i),
+      e.@complete_items += i.id #added here to use in part 2
+    POST-ACCUM 
       e.@dupe = e.@elves_items.get(e.@pouches.get(0)) INTERSECT e.@elves_items.get(e.@pouches.get(1)),
-
-      # add up total value
+  
       FOREACH value in e.@dupe DO @@total_priority += @@priority.get(value.id) END;
 
-
+  
   PRINT @@total_priority;
-
+      
   ### PART 2
-
-  # regroup!
-  MaxAccum<INT> @group;
-
-  elves = SELECT e FROM elf:e POST-ACCUM e.@group = floor(str_to_int(e.id) / 3);
-
+ 
+  # regroup! 
+  elves = SELECT e FROM elf:e POST-ACCUM e.@group = floor(str_to_int(e.id) / 3); 
+  
   # and we'll traverse from the items this time - want items that exist across the groups
   SetAccum<STRING> @owners;
   MapAccum<VERTEX<item>, MapAccum<INT, INT>> @@owners;
   SumAccum<INT> @@secondary_total_priority;
-
-  # traverse to find groups with three owners, store in global @@owners.
-  # Then sum up using initial priority mapper
-  __ = SELECT i FROM item:i - () - pouch - () - elf:e
+  __ = SELECT i FROM item:i - () - pouch - () - elf:e 
        ACCUM i.@owners += (e.id),
              @@owners += (i -> (e.@group -> 1))
-       POST-ACCUM
-             FOREACH (grp, ncount) in @@owners.get(i)
-             DO IF ncount == 3
+       POST-ACCUM 
+             FOREACH (grp, ncount) in @@owners.get(i) 
+             DO IF ncount == 3 
                 THEN @@secondary_total_priority += @@priority.get(i.id)
-                END
-             END;
-
+                END 
+             END; 
+  
+ /* elves = SELECT e 
+          FROM elf:e - () - pouch - () - item:i - () - pouch - () - elf:g 
+          WHERE e.@group == g.@group   
+  */
+  PRINT @@owners;
+  PRINT elves;
   PRINT @@secondary_total_priority;
+  
 }
+set exit_on_error = "true"
