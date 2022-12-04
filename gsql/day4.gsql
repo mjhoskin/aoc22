@@ -1,0 +1,37 @@
+CREATE QUERY get_overlaps(/* Parameters here */) FOR GRAPH aoc {
+  /* Write query logic here */
+
+  # assignment 1 lims between assignment 2 lims OR vice versa
+
+  #MinAccum<INT> @lower;
+  #MaxAccum<INT> @upper;
+
+  MapAccum<STRING, INT> @lower;
+  MapAccum<STRING, INT> @upper;
+  ListAccum<STRING> @bounds;
+  #one more than + one less than and issue is had
+
+  SumAccum<INT> @@total_overlap;
+
+  elves =
+    SELECT e
+    FROM elf_pair:e - () - assignment:a
+    ACCUM
+      e.@lower += (a.id -> a.lower_bound),
+      e.@upper += (a.id -> a.upper_bound),
+      e.@bounds += a.id
+    POST-ACCUM
+      IF ((e.@lower.get(e.@bounds.get(0)) >= e.@lower.get(e.@bounds.get(1))) AND
+          (e.@upper.get(e.@bounds.get(0)) <= e.@upper.get(e.@bounds.get(1)))) OR
+         ((e.@lower.get(e.@bounds.get(1)) >= e.@lower.get(e.@bounds.get(0))) AND
+          (e.@upper.get(e.@bounds.get(1)) <= e.@upper.get(e.@bounds.get(0))))
+      THEN
+        @@total_overlap += 1 END;
+
+
+
+
+
+
+    PRINT @@total_overlap;
+}
