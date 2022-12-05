@@ -1,17 +1,10 @@
 CREATE QUERY get_overlaps(/* Parameters here */) FOR GRAPH aoc {
-  /* Write query logic here */
-
-  # assignment 1 lims between assignment 2 lims OR vice versa
-
-  #MinAccum<INT> @lower;
-  #MaxAccum<INT> @upper;
-
   MapAccum<STRING, INT> @lower;
   MapAccum<STRING, INT> @upper;
   ListAccum<STRING> @bounds;
-  #one more than + one less than and issue is had
 
   SumAccum<INT> @@total_overlap;
+  SumAccum<INT> @@any_overlap;
 
   elves =
     SELECT e
@@ -21,17 +14,33 @@ CREATE QUERY get_overlaps(/* Parameters here */) FOR GRAPH aoc {
       e.@upper += (a.id -> a.upper_bound),
       e.@bounds += a.id
     POST-ACCUM
+      # if complete overlap
       IF ((e.@lower.get(e.@bounds.get(0)) >= e.@lower.get(e.@bounds.get(1))) AND
           (e.@upper.get(e.@bounds.get(0)) <= e.@upper.get(e.@bounds.get(1)))) OR
          ((e.@lower.get(e.@bounds.get(1)) >= e.@lower.get(e.@bounds.get(0))) AND
           (e.@upper.get(e.@bounds.get(1)) <= e.@upper.get(e.@bounds.get(0))))
       THEN
-        @@total_overlap += 1 END;
+        @@total_overlap += 1,
+        @@any_overlap += 1
+      # if one end within others bounds
+      ELSE IF ((e.@lower.get(e.@bounds.get(0)) >= e.@lower.get(e.@bounds.get(1))) AND
+               (e.@lower.get(e.@bounds.get(0)) <= e.@upper.get(e.@bounds.get(1)))) OR
+              ((e.@upper.get(e.@bounds.get(0)) >= e.@lower.get(e.@bounds.get(1))) AND
+               (e.@upper.get(e.@bounds.get(0)) <= e.@upper.get(e.@bounds.get(1))))
+      THEN
+        @@any_overlap += 1
+      END,
+
+      # catch where bounds identical and hasn't uploaded properly -.-
+      IF e.@bounds.size() == 1
+      THEN
+        @@total_overlap += 1,
+        @@any_overlap += 1
+      END;
+
+  PRINT @@total_overlap;
+  PRINT @@any_overlap;
 
 
 
-
-
-
-    PRINT @@total_overlap;
 }

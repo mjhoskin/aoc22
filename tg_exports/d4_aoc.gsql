@@ -1,0 +1,17 @@
+CREATE GRAPH aoc()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH aoc { 
+  ADD VERTEX elf_pair(PRIMARY_ID id STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD VERTEX assignment(PRIMARY_ID id STRING, lower_bound INT, upper_bound INT) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD UNDIRECTED EDGE have(FROM elf_pair, TO assignment);
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_d4_txt_1670193147759 FOR GRAPH aoc {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX elf_pair VALUES($0) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO VERTEX assignment VALUES(gsql_concat($1,"-",$2), $1, $2) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO EDGE have VALUES($0, gsql_concat($1,"-",$2)) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+    }
+
+set exit_on_error = "true"
