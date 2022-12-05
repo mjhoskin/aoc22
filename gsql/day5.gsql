@@ -1,0 +1,70 @@
+CREATE QUERY perform_moves() FOR GRAPH aoc { 
+  
+  MapAccum<INT, ListAccum<STRING>> @@instr; 
+  ordered_instructions = SELECT i 
+                         FROM instruction:i
+                         POST-ACCUM 
+                         @@instr += (i.id -> i.num_to_move),
+                         @@instr += (i.id -> i.from_stack),
+                         @@instr += (i.id -> i.to_stack)
+
+                         ORDER BY i.id ASC;
+  
+  #PRINT @@instr;
+  
+  stacks = {stack.*};
+  
+  ListAccum<STRING> @contents;
+  MapAccum<STRING, ListAccum<STRING>> @@stack_contents;
+  
+  __ = SELECT s 
+       FROM stacks:s
+       ACCUM 
+         FOREACH idx in RANGE [0, length(s.columns) - 1] 
+         DO s.@contents += substr(s.columns, idx, 1) END;
+  
+  __ = SELECT s 
+       FROM stacks:s 
+       POST-ACCUM
+         @@stack_contents += (s.id -> s.@contents);
+  
+  #PRINT @@stack_contents;
+  
+  ListAccum<STRING> @@cmd;
+  ListAccum<STRING> @@tempLetter; 
+  ListAccum<STRING> @@tempLetter2;
+  
+  #PRINT @@instr; 
+  FOREACH 
+    id in RANGE [0, @@instr.size()]
+  DO 
+    @@cmd = @@instr.get(id);
+    INT move_count = str_to_int(@@cmd.get(0));
+    STRING from_st = @@cmd.get(1);
+    STRING to_st = @@cmd.get(2);
+  
+  #  PRINT @@cmd;
+  
+    FOREACH n in RANGE [1, move_count] 
+    DO 
+      @@tempLetter.clear();
+      @@tempLetter2.clear();
+  
+      @@tempLetter = @@stack_contents.get(from_st);
+ #     PRINT @@tempLetter;
+ #     PRINT from_st;
+
+      INT len = @@tempLetter.size();
+      STRING letter = @@tempLetter.get(len - 1);
+      @@stack_contents.get(from_st).remove(len-1);
+      
+      @@tempLetter2 += letter;
+      @@stack_contents += (to_st -> @@tempLetter2);
+    END;
+  END;
+  
+  
+  PRINT @@stack_contents;
+  
+  
+}
