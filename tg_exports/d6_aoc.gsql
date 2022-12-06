@@ -1,0 +1,126 @@
+CREATE GRAPH aoc()
+CREATE SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO FOR GRAPH aoc { 
+  ADD VERTEX pkt_char(PRIMARY_ID id STRING, value STRING) WITH STATS="OUTDEGREE_BY_EDGETYPE", PRIMARY_ID_AS_ATTRIBUTE="true";
+  ADD DIRECTED EDGE leads_to(FROM pkt_char, TO pkt_char) WITH REVERSE_EDGE="reverse_leads_to";
+}
+RUN SCHEMA_CHANGE JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+DROP JOB schema_change_job_AddExportedLocalVETypes_JT8B8XV85X78MVIO
+set exit_on_error = "false"
+CREATE LOADING JOB load_job_d6_txt_1670333729743 FOR GRAPH aoc {
+      DEFINE FILENAME MyDataSource;
+      LOAD MyDataSource TO VERTEX pkt_char VALUES($0, $2) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+      LOAD MyDataSource TO EDGE leads_to VALUES($0, $1) USING SEPARATOR=" ", HEADER="false", EOL="\n";
+    }
+
+set exit_on_error = "true"
+set exit_on_error = "false"
+CREATE QUERY perform_moves() FOR GRAPH aoc { 
+  
+  MapAccum<INT, ListAccum<STRING>> @@instr; 
+  ordered_instructions = SELECT i 
+                         FROM instruction:i
+                         POST-ACCUM 
+                         @@instr += (i.id -> i.num_to_move),
+                         @@instr += (i.id -> i.from_stack),
+                         @@instr += (i.id -> i.to_stack)
+
+                         ORDER BY i.id ASC;
+  
+  #PRINT @@instr;
+  
+  stacks = {stack.*};
+  
+  ListAccum<STRING> @contents;
+  MapAccum<STRING, ListAccum<STRING>> @@stack_contents;
+  MapAccum<STRING, ListAccum<STRING>> @@stack_contents_d2;
+  
+  __ = SELECT s 
+       FROM stacks:s
+       ACCUM 
+         FOREACH idx in RANGE [0, length(s.columns) - 1] 
+         DO s.@contents += substr(s.columns, idx, 1) END;
+  
+  __ = SELECT s 
+       FROM stacks:s 
+       POST-ACCUM
+         @@stack_contents += (s.id -> s.@contents),
+         @@stack_contents_d2 += (s.id -> s.@contents);
+  
+  #PRINT @@stack_contents;
+  
+  ListAccum<STRING> @@cmd;
+  ListAccum<STRING> @@temp_stack; 
+  ListAccum<STRING> @@temp_letter;
+  
+  #PRINT @@instr; 
+  FOREACH 
+    id in RANGE [0, @@instr.size()]
+  DO 
+    @@cmd = @@instr.get(id);
+    INT move_count = str_to_int(@@cmd.get(0));
+    STRING from_st = @@cmd.get(1);
+    STRING to_st = @@cmd.get(2);
+  
+  #  PRINT @@cmd;
+  
+    FOREACH n in RANGE [1, move_count] 
+    DO 
+      @@temp_stack.clear();
+      @@temp_letter.clear();
+  
+      @@temp_stack = @@stack_contents.get(from_st);
+ #     PRINT @@temp_stack;
+ #     PRINT from_st;
+
+      INT len = @@temp_stack.size();
+      STRING letter = @@temp_stack.get(len - 1);
+      @@stack_contents.get(from_st).remove(len-1);
+      
+      @@temp_letter += letter;
+      @@stack_contents += (to_st -> @@temp_letter);
+    END;
+  
+    FOREACH n in RANGE [move_count, 1].step(-1) 
+    DO 
+      @@temp_stack.clear();
+      @@temp_letter.clear();
+  
+      @@temp_stack = @@stack_contents_d2.get(from_st);
+      #PRINT @@temp_stack;
+      #PRINT from_st;
+
+      INT len = @@temp_stack.size();
+      STRING letter = @@temp_stack.get(len - n);
+      #PRINT letter;
+      @@stack_contents_d2.get(from_st).remove(len - n);
+      
+      @@temp_letter += letter;
+      @@stack_contents_d2 += (to_st -> @@temp_letter);
+    END;
+  
+  END;
+  
+  
+  PRINT @@stack_contents;
+  PRINT @@stack_contents_d2;
+  
+  
+}
+CREATE QUERY get_packet() FOR GRAPH aoc { 
+  
+  ListAccum<STRING> @@buffer;
+  
+  MinAccum<INT> @@min_id;
+  
+  all_chars = {pkt_char.*};
+  
+  __ = SELECT p 
+        FROM all_chars:p - (<leads_to) - pkt_char:p2 - (<leads_to) - pkt_char:p3 - (<leads_to) - pkt_char:p4
+        WHERE p4.id != ""
+        ACCUM @@min_id += str_to_int(p.id);
+  
+  PRINT @@min_id;
+  
+  
+}
+set exit_on_error = "true"

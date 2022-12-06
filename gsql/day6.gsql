@@ -1,0 +1,60 @@
+CREATE QUERY get_packet() FOR GRAPH aoc {
+
+  MinAccum<INT> @@min_id;
+  SetAccum<STRING> @buffer;
+
+  MinAccum<INT> @buffer_size;
+
+  all_chars = {pkt_char.*};
+
+  pkt = SELECT p4
+#        FROM pkt_char:p -()- pkt_char:p2 -()- pkt_char:p3 -()- pkt_char:p4
+        FROM pkt_char:p - (leads_to>) - pkt_char:p2 - (leads_to>) - pkt_char:p3 - (leads_to>) - pkt_char:p4
+        WHERE p4.id != ""
+        ACCUM p4.@buffer += p.value,
+              p4.@buffer += p2.value,
+              p4.@buffer += p3.value,
+              p4.@buffer += p4.value
+        POST-ACCUM
+              p4.@buffer_size = p4.@buffer.size()
+        HAVING
+              p4.@buffer_size == 4
+        ORDER BY
+              str_to_int(p4.id) ASC
+        LIMIT 1
+  ;
+
+  PRINT pkt;
+
+
+####PART 2
+SetAccum<STRING> @part2_buffer;
+
+#initialise buffers
+pkts = SELECT p
+        FROM pkt_char:p
+        WHERE p.id != ""
+        ACCUM p.@part2_buffer += p.value;
+
+INT buffer_max = 14;
+
+#loop over and add to buffer contents of next buffer n times.
+#due to Set uniqueness principle overlapping boundarys is unimportant.
+pkts2 = {pkt_char.*};
+FOREACH __ in RANGE [2, buffer_max] DO
+  pkts2 = SELECT p2
+          FROM pkts:p - (leads_to>) - pkt_char:p2
+          WHERE p2.id != ""
+          ACCUM p2.@part2_buffer += p.@part2_buffer;
+END;
+
+#tidy up and filter result.
+pkts2 = SELECT p FROM pkts2:p
+        WHERE p.@part2_buffer.size() == buffer_max
+#        POST-ACCUM p.@buffer_size = p.@part2_buffer.size()
+#        HAVING p.@part2_buffer.size() == buffer_max
+        ORDER BY str_to_int(p.id) ASC
+        LIMIT 1;
+PRINT pkts2;
+
+}
