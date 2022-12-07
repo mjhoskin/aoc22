@@ -1,0 +1,44 @@
+CREATE QUERY file_management() FOR GRAPH aoc SYNTAX v2{
+
+  SumAccum<INT> @dir_size;
+  SumAccum<INT> @@total_small_size;
+  SumAccum<INT> @@total_size;
+
+  #PART 1
+  small_dirs = SELECT d
+                FROM dir:d - (contains>*) - file_:f
+                PER (d, f)
+                ACCUM
+                  d.@dir_size += f.file_size
+                POST-ACCUM
+                  IF
+                    d.@dir_size <= 100000
+                  THEN
+                    @@total_small_size += d.@dir_size
+                  END;
+
+  PRINT @@total_small_size;
+
+  #PART 2
+  __ = SELECT f FROM file_:f ACCUM @@total_size += f.file_size;
+
+  PRINT @@total_size;
+
+
+  SumAccum<INT> @@required_space;
+  @@required_space += @@total_size;
+  @@required_space += -40000000;
+
+  MinAccum<INT> @@smallest_size;
+  PRINT @@required_space;
+
+  dd = SELECT d
+               FROM dir:d
+               WHERE d.@dir_size >= @@required_space
+               ACCUM @@smallest_size += d.@dir_size
+               ORDER BY d.@dir_size LIMIT 10;
+
+  PRINT @@smallest_size;
+  #PRINT dd;
+
+}
