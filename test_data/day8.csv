@@ -1,0 +1,13 @@
+﻿init,vert,hozt,init_height
+test_start,A,A,
+test_start,B,D,
+test_start,C,G,
+A,D,B,5
+B,E,C,5
+C,F,test_start,5
+D,G,E,5
+E,H,F,9
+F,I,test_start,5
+G,test_start,H,5
+H,test_start,I,5
+I,test_start,test_start,5

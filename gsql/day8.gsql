@@ -1,0 +1,102 @@
+CREATE QUERY tree_heights(VERTEX<tree> start) FOR GRAPH aoc {
+  /* Write query logic here */
+
+  ListAccum<VERTEX<tree>> @@starts;
+  MaxAccum<INT> @hzt_max = -1;
+  MaxAccum<INT> @vrt_max = -1;
+  OrAccum @visible = FALSE;
+  SumAccum<INT> @@total_visible;
+
+  INT width = 5;
+  INT height = 5;
+
+  ##want to be able to access every node in a horizontal chain.
+  ##can't have an arbitrary length path design while being able to access
+  ##every interim node unfortunately.
+  ##As such, have to loop.
+  ##Also have to split into hzt and vrt as want straight lines across the map -
+  ##can have an or | in the edge descriptor, but not trivial to continue that
+  ##from one node to the next. Might be able to have the edge type stored?
+  ##Thought it wouldn't matter, but as I have a single node on all the edges - START
+  ##some issue occur with routes traversing back to it with high values.
+
+  ##### HORIZONTALLY
+  forest = {start};
+  WHILE TRUE
+  LIMIT width
+  DO
+    forest = SELECT nxt
+              FROM forest:init -(<hzt)- tree:nxt
+              ACCUM
+                nxt.@hzt_max = init.@hzt_max,
+                IF nxt.height > init.@hzt_max
+                THEN nxt.@visible += TRUE
+                END,
+                nxt.@hzt_max += nxt.height;
+    #PRINT forest;
+  END;
+  #PRINT forest;
+
+  __ = SELECT t FROM tree:t ACCUM t.@hzt_max = -1;
+
+  forest = {start};
+  WHILE TRUE
+  LIMIT width
+  DO
+    forest = SELECT nxt
+              FROM forest:init -(hzt>)- tree:nxt
+              ACCUM
+                nxt.@hzt_max = init.@hzt_max,
+                IF nxt.height > init.@hzt_max
+                THEN nxt.@visible += TRUE
+                END,
+                nxt.@hzt_max += nxt.height;
+    #PRINT forest;
+  END;
+  #PRINT forest;
+  all = {tree.*};
+
+
+  #__ = SELECT a FROM all:a WHERE a.@visible ACCUM @@total_visible += 1;
+  #PRINT @@total_visible;
+  #PRINT all;
+
+  ##### VERTICAL
+  forest = {start};
+  WHILE TRUE
+  LIMIT height
+  DO
+    forest = SELECT nxt
+              FROM forest:init -(vrt>)- tree:nxt
+              ACCUM
+                nxt.@vrt_max = init.@vrt_max,
+                IF nxt.height > init.@vrt_max
+                THEN nxt.@visible += TRUE
+                END,
+                nxt.@vrt_max += nxt.height;
+  END;
+
+  __ = SELECT t FROM tree:t ACCUM t.@vrt_max = -1;
+
+  forest = {start};
+  WHILE TRUE
+  LIMIT height
+  DO
+    forest = SELECT nxt
+              FROM forest:init -(<vrt)- tree:nxt
+              ACCUM
+                nxt.@vrt_max = init.@vrt_max,
+                IF nxt.height > init.@vrt_max
+                THEN nxt.@visible += TRUE
+                END,
+                nxt.@vrt_max += nxt.height;
+  END;
+
+ # SumAccum<INT> @@total_visible;
+  all = {tree.*};
+
+  vis = SELECT a FROM all:a WHERE a.@visible ACCUM @@total_visible += 1 ORDER BY a.id;
+  PRINT @@total_visible;
+  PRINT vis;
+  #PRINT all;
+}
