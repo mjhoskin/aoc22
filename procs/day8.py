@@ -18,8 +18,8 @@ def get_path(day, mode="real"):
 
 
 def proc_d8():
-    day = 8
-    path = get_path(day, 'test')
+    day = "8_sub"
+    path = get_path(day)
 
     with open(path) as f:
         d = [list(i) for i in f.read().split('\n')]
@@ -44,11 +44,10 @@ def proc_d8():
                               f"{right}",
                               height_str])
 
-    with open(get_path("8-2", "test"), 'w') as f:
+    with open(get_path("8-4", "test"), 'w') as f:
         f.write("node vert hzt height\n")
         for row in cell_info:
             f.write(f"t{row[0]} t{row[1]} t{row[2]} {row[3]}\n")
-
 
 
 if __name__ == '__main__':

@@ -7,8 +7,8 @@ CREATE QUERY tree_heights(VERTEX<tree> start) FOR GRAPH aoc {
   OrAccum @visible = FALSE;
   SumAccum<INT> @@total_visible;
 
-  INT width = 5;
-  INT height = 5;
+  INT width = 100;
+  INT height = 100;
 
   ##want to be able to access every node in a horizontal chain.
   ##can't have an arbitrary length path design while being able to access
@@ -97,6 +97,6 @@ CREATE QUERY tree_heights(VERTEX<tree> start) FOR GRAPH aoc {
 
   vis = SELECT a FROM all:a WHERE a.@visible ACCUM @@total_visible += 1 ORDER BY a.id;
   PRINT @@total_visible;
-  PRINT vis;
+  #PRINT vis;
   #PRINT all;
 }
