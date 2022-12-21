@@ -1,0 +1,56 @@
+CREATE QUERY clocks(VERTEX<instr> start) FOR GRAPH aoc {
+
+  SumAccum<INT> @@reg = 1;
+  SumAccum<INT> @@cycle = 1;
+  SumAccum<INT> @@signal_strength = 0;
+  SumAccum<INT> @@nodes_visited = 0;
+  ListAccum<STRING> @@screen;
+  tgt = {start};
+  INT total_nodes = 140;
+
+  WHILE @@nodes_visited != total_nodes
+  DO
+    tgt = SELECT t
+          FROM tgt:s -(leads_to)- instr:t
+          ACCUM
+            @@cycle += 1,
+            IF (@@cycle - 20) % 40 == 0
+            THEN @@signal_strength += @@cycle * @@reg
+            END,
+
+            IF (@@reg <= (@@cycle % 40)) AND ((@@cycle % 40) <= @@reg + 2)
+            THEN @@screen += "W"
+            ELSE @@screen += "." END
+
+          POST-ACCUM
+            IF s.operation == "addx"
+            THEN @@cycle += 1,
+                 @@reg += s.value,
+                 IF (@@cycle - 20) % 40 == 0
+                 THEN @@signal_strength += @@cycle * @@reg
+                 END,
+
+                 IF (@@reg <= (@@cycle % 40)) AND ((@@cycle % 40) <= @@reg + 2)
+                 THEN @@screen += "W"
+                 ELSE @@screen += "."
+                 END
+
+            END;
+
+    @@nodes_visited += 1;
+  END;
+
+  PRINT @@signal_strength;
+
+  STRING row = "";
+  FOREACH letter in @@screen
+  DO
+    row = row + letter;
+    IF length(row) == 40
+    THEN
+      PRINT row;
+      row = "";
+    END;
+  END;
+
+}
