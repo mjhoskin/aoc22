@@ -20,7 +20,7 @@ CREATE QUERY clocks(VERTEX<instr> start) FOR GRAPH aoc {
 
             IF (@@reg <= (@@cycle % 40)) AND ((@@cycle % 40) <= @@reg + 2)
             THEN @@screen += "W"
-            ELSE @@screen += "." END
+            ELSE @@screen += " " END
 
           POST-ACCUM
             IF s.operation == "addx"
@@ -32,7 +32,7 @@ CREATE QUERY clocks(VERTEX<instr> start) FOR GRAPH aoc {
 
                  IF (@@reg <= (@@cycle % 40)) AND ((@@cycle % 40) <= @@reg + 2)
                  THEN @@screen += "W"
-                 ELSE @@screen += "."
+                 ELSE @@screen += " "
                  END
 
             END;
@@ -42,15 +42,17 @@ CREATE QUERY clocks(VERTEX<instr> start) FOR GRAPH aoc {
 
   PRINT @@signal_strength;
 
+
   STRING row = "";
+  ListAccum<STRING> @@rows;
   FOREACH letter in @@screen
   DO
     row = row + letter;
     IF length(row) == 40
     THEN
-      PRINT row;
+      @@rows += row;
       row = "";
     END;
   END;
-
+  PRINT @@rows;
 }
